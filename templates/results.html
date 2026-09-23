@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Clean CSS classes to eliminate inline style linter errors */
+    .scan-form {
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #D8D2C2;
+    }
+</style>
+
+<div class="instrument-grid">
+    <!-- Left panel -->
+    <div class="panel">
+        <h2>{{ ticker }} Data</h2>
+        
+        <div class="metric-group">
+            <div class="metric">
+                <span class="label">Current Price</span>
+                <span class="value mono">${{ "%.2f"|format(current_price) }}</span>
+            </div>
+            <div class="metric">
+                <span class="label">7D Momentum</span>
+                <span class="value mono">{{ "%.2f"|format(price_change) }}%</span>
+            </div>
+        </div>
+
+        <form action="{{ url_for('analyze_post') }}" method="POST" class="query-form scan-form">
+            <div class="form-group">
+                <label for="ticker">Scan New Target</label>
+                <input type="text" id="ticker" name="ticker" placeholder="e.g., NVDA" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-primary">Initialize Scan</button>
+        </form>
+    </div>
+
+    <!-- Right panel -->
+    <div class="panel">
+        <h3>Divergence Telemetry</h3>
+        
+        <div class="signals">
+            <!-- Sentiment Signal -->
+            <div class="signal-row">
+                <div class="signal-labels">
+                    <span class="signal-name">Retail Sentiment</span>
+                    <span class="signal-value mono">{{ "%.2f"|format(retail_score) }}</span>
+                </div>
+                <div class="signal-track">
+                    {% set retail_pct = (retail_score + 1.0) * 50 %}
+                    <div class="signal-fill bg-brass" data-width="{{ retail_pct }}"></div>
+                </div>
+            </div>
+
+            <!-- Price Signal -->
+            <div class="signal-row">
+                <div class="signal-labels">
+                    <span class="signal-name">Price Momentum</span>
+                    <span class="signal-value mono">{{ "%.2f"|format(price_score) }}</span>
+                </div>
+                <div class="signal-track">
+                    {% set price_pct = (price_score + 1.0) * 50 %}
+                    <div class="signal-fill bg-steel" data-width="{{ price_pct }}"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="divergence-box {% if gap|abs >= 0.5 %}alert-state{% endif %}">
+            <h4>STATUS: {{ label|upper }}</h4>
+            <div class="summary-text">{{ summary }}</div>
+        </div>
+
+        {% if not has_real_sentiment %}
+        <div class="mock-warning">
+            * Note: Sentiment tracking is currently utilizing MOCK data. Provide REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET in .env for live metrics.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

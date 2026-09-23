@@ -1,34 +1,54 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>InvestIQ</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>InvestIQ</h1>
-        <p>Retail sentiment vs. price divergence dashboard</p>
+{% extends "base.html" %}
 
-        <form method="POST">
-            <label for="ticker">Ticker</label>
-            <input id="ticker" name="ticker" value="{{ ticker }}">
-            <button type="submit">Analyze</button>
-        </form>
-
-        {% if result %}
-            {% if result.error %}
-                <div class="error-box">{{ result.error }}</div>
-            {% else %}
-                <div class="summary-box">
-                    <h2>{{ result.ticker }}</h2>
-                    <p><strong>Retail Sentiment:</strong> {{ result.scores.retail_sentiment_score }}</p>
-                    <p><strong>Price Momentum:</strong> {{ result.scores.price_momentum_score }}</p>
-                    <p><strong>Divergence:</strong> {{ result.divergence }}</p>
-                    <p><strong>Classification:</strong> {{ result.classification }}</p>
-                </div>
-            {% endif %}
+{% block content %}
+<div class="instrument-grid">
+    <!-- Left Panel: Input Area -->
+    <div class="panel">
+        <h2>Target Acquisition</h2>
+        <p class="panel-desc">Run a comparative analysis between retail chatter and historical price action to spot social/market divergence.</p>
+        
+        {% if error %}
+            <div class="alert highlight-rust">
+                <span>{{ error }}</span>
+            </div>
         {% endif %}
+
+        <form action="{{ url_for('analyze_post') }}" method="POST" class="query-form">
+            <div class="form-group">
+                <label for="ticker">Ticker Symbol</label>
+                <input type="text" id="ticker" name="ticker" placeholder="e.g., TSLA" required autofocus autocomplete="off">
+            </div>
+            <button type="submit" class="btn-primary">Scan Instrument</button>
+        </form>
     </div>
-</body>
-</html>
+
+    <!-- Right Panel: Legend -->
+    <div class="panel">
+        <h3>Signal Legend</h3>
+        <p class="panel-desc">Metrics used in the console readout:</p>
+        
+        <div class="legend-list">
+            <div class="legend-item">
+                <div class="swatch bg-brass"></div>
+                <div class="legend-text">
+                    <strong>Retail Sentiment:</strong> Aggregated VADER score (-1 to 1) drawn from relevant subreddit discussions.
+                </div>
+            </div>
+            
+            <div class="legend-item">
+                <div class="swatch bg-steel"></div>
+                <div class="legend-text">
+                    <strong>Price Momentum:</strong> 7-day percent yield mapped equivalently (-1 to 1).
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="swatch bg-rust" style="height: 3px; border-radius:0; transform: translateY(5px);"></div>
+                <div class="legend-text" style="margin-top: 10px;">
+                    <strong>Divergence Alert:</strong> Notifies when social narrative drastically detaches from technical momentum |gap| &ge; 0.5.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

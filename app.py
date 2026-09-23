@@ -1,83 +1,72 @@
 import os
+from flask import Flask, render_template, request, redirect, url_for
+from dotenv import load_dotenv
 
-from flask import Flask, render_template, request
+from scoring_engine import normalize_sentiment, normalize_price_momentum, compute_divergence
+from data.price_fetcher import get_price_momentum, get_current_price
+from data.reddit_sentiment import get_mock_sentiment, get_reddit_sentiment
+from data.ai_summary import get_educational_summary
 
-from backend.data_pipeline import fetch_market_history, fetch_reddit_posts
-from backend.divergence_engine import classify_divergence, compute_divergence, explain_divergence
-from backend.scoring_engine import build_scores
+load_dotenv()
 
 app = Flask(__name__)
 
-
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
-    ticker = "AAPL"
-    result = None
-    if request.method == "POST":
-        ticker = request.form.get("ticker", "AAPL").strip().upper()
-        try:
-            reddit_posts = fetch_reddit_posts(ticker=ticker)
-            market_data = fetch_market_history(ticker=ticker)
-            scores = build_scores(reddit_posts, market_data["pct_change"])
-            divergence = compute_divergence(
-                scores["retail_sentiment_score"],
-                scores["price_momentum_score"],
-            )
-            explanation = explain_divergence(
-                ticker=ticker,
-                reddit_posts=reddit_posts,
-                market_stats=market_data,
-                retail_score=scores["retail_sentiment_score"],
-                price_score=scores["price_momentum_score"],
-                divergence_score=divergence,
-                api_key=os.getenv("GROK_API_KEY"),
-            )
-            result = {
-                "ticker": ticker,
-                "market": market_data,
-                "reddit_posts": reddit_posts,
-                "scores": scores,
-                "divergence": divergence,
-                "classification": classify_divergence(divergence),
-                "explanation": explanation,
-            }
-        except Exception as exc:
-            result = {"error": str(exc)}
+    return render_template("index.html")
 
-    return render_template("index.html", result=result, ticker=ticker)
+@app.route("/analyze", methods=["POST"])
+def analyze_post():
+    ticker = request.form.get("ticker", "").strip().upper()
+    if not ticker:
+        return render_template("index.html", error="Please provide a valid ticker.")
+    return redirect(url_for("analyze_get", ticker=ticker))
 
-
-@app.route("/dashboard")
-def dashboard():
-    ticker = "AAPL"
+@app.route("/analyze/<ticker>", methods=["GET"])
+def analyze_get(ticker):
     try:
-        reddit_posts = fetch_reddit_posts(ticker=ticker)
-        market_data = fetch_market_history(ticker=ticker)
-        scores = build_scores(reddit_posts, market_data["pct_change"])
-        divergence = compute_divergence(scores["retail_sentiment_score"], scores["price_momentum_score"])
-        explanation = explain_divergence(
+        ticker = ticker.upper()
+        # Fetch real price data
+        price_perc = get_price_momentum(ticker)
+        curr_price = get_current_price(ticker)
+        
+        has_real_sentiment = False
+        try:
+            raw_sentiment = get_reddit_sentiment(ticker)
+            has_real_sentiment = True
+        except NotImplementedError:
+            raw_sentiment = get_mock_sentiment(ticker)
+            
+        r_score = normalize_sentiment(raw_sentiment)
+        p_score = normalize_price_momentum(price_perc)
+        
+        div = compute_divergence(r_score, p_score)
+        
+        summary = get_educational_summary(
             ticker=ticker,
-            reddit_posts=reddit_posts,
-            market_stats=market_data,
-            retail_score=scores["retail_sentiment_score"],
-            price_score=scores["price_momentum_score"],
-            divergence_score=divergence,
-            api_key=os.getenv("GROK_API_KEY"),
+            retail_score=div["retail_score"],
+            price_score=div["price_score"],
+            gap=div["gap"],
+            label=div["label"]
         )
-        result = {
-            "ticker": ticker,
-            "market": market_data,
-            "reddit_posts": reddit_posts,
-            "scores": scores,
-            "divergence": divergence,
-            "classification": classify_divergence(divergence),
-            "explanation": explanation,
-        }
-    except Exception as exc:
-        result = {"error": str(exc)}
-
-    return render_template("dashboard.html", result=result)
-
+        
+        return render_template(
+            "results.html",
+            ticker=ticker,
+            current_price=curr_price,
+            price_change=price_perc,
+            retail_score=div["retail_score"],
+            price_score=div["price_score"],
+            gap=div["gap"],
+            label=div["label"],
+            summary=summary,
+            has_real_sentiment=has_real_sentiment
+        )
+        
+    except ValueError as e:
+        return render_template("index.html", error=str(e)), 404
+    except Exception as e:
+        return render_template("index.html", error=f"An unexpected error occurred: {str(e)}"), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

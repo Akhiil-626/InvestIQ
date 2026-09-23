@@ -1,8 +1,7 @@
-Flask>=3.0.3
-praw>=7.8.1
-yfinance>=0.2.54
-nltk>=3.9.1
-requests>=2.32.2
-python-dotenv>=1.0.1
-pandas>=2.2.3
-numpy>=2.1.1
+Flask==3.0.3
+yfinance==0.2.37
+praw==7.7.1
+vaderSentiment==3.3.2
+python-dotenv==1.0.1
+requests==2.31.0
+pytest==8.1.1
