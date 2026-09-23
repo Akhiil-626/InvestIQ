@@ -1,7 +1,13 @@
 import os
 import hashlib
+from importlib import import_module
 import praw
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+# Load the optional dependency dynamically so static analyzers do not require
+# vaderSentiment to be installed in their configured interpreter.
+SentimentIntensityAnalyzer = import_module(
+    "vaderSentiment.vaderSentiment"
+).SentimentIntensityAnalyzer
 
 def get_mock_sentiment(ticker: str, num_posts: int = 15) -> list[float]:
     """
