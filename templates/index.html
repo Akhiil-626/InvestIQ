@@ -14,12 +14,20 @@
         {% endif %}
 
         <form action="{{ url_for('analyze_post') }}" method="POST" class="query-form">
-            <div class="form-group">
-                <label for="ticker">Ticker Symbol</label>
-                <input type="text" id="ticker" name="ticker" placeholder="e.g., TSLA" required autofocus autocomplete="off">
-            </div>
-            <button type="submit" class="btn-primary">Scan Instrument</button>
-        </form>
+                    <div class="form-group">
+                        <label for="ticker">Ticker Symbol</label>
+                        <input type="text" id="ticker" name="ticker" placeholder="e.g., TSLA" required autofocus autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="days">Analysis Period</label>
+                        <select id="days" name="days">
+                            <option value="7">7 Days</option>
+                            <option value="30">30 Days</option>
+                            <option value="90">90 Days</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Scan Instrument</button>
+                </form>
     </div>
 
     <!-- Right Panel: Legend -->

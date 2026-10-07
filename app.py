@@ -18,16 +18,26 @@ def index():
 @app.route("/analyze", methods=["POST"])
 def analyze_post():
     ticker = request.form.get("ticker", "").strip().upper()
+    days = request.form.get("days", "7")
+    try:
+        days = int(days)
+    except ValueError:
+        days = 7
     if not ticker:
         return render_template("index.html", error="Please provide a valid ticker.")
-    return redirect(url_for("analyze_get", ticker=ticker))
+    return redirect(url_for("analyze_get", ticker=ticker, days=days))
 
 @app.route("/analyze/<ticker>", methods=["GET"])
 def analyze_get(ticker):
     try:
         ticker = ticker.upper()
+        days = request.args.get("days", "7")
+        try:
+            days = int(days)
+        except ValueError:
+            days = 7
         # Fetch real price data
-        price_perc = get_price_momentum(ticker)
+        price_perc = get_price_momentum(ticker, days=days)
         curr_price = get_current_price(ticker)
         
         has_real_sentiment = False
@@ -51,17 +61,18 @@ def analyze_get(ticker):
         )
         
         return render_template(
-            "results.html",
-            ticker=ticker,
-            current_price=curr_price,
-            price_change=price_perc,
-            retail_score=div["retail_score"],
-            price_score=div["price_score"],
-            gap=div["gap"],
-            label=div["label"],
-            summary=summary,
-            has_real_sentiment=has_real_sentiment
-        )
+                    "results.html",
+                    ticker=ticker,
+                    current_price=curr_price,
+                    price_change=price_perc,
+                    retail_score=div["retail_score"],
+                    price_score=div["price_score"],
+                    gap=div["gap"],
+                    label=div["label"],
+                    summary=summary,
+                    has_real_sentiment=has_real_sentiment,
+                    days=days
+                )
         
     except ValueError as e:
         return render_template("index.html", error=str(e)), 404

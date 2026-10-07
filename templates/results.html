@@ -21,7 +21,7 @@
                 <span class="value mono">${{ "%.2f"|format(current_price) }}</span>
             </div>
             <div class="metric">
-                <span class="label">7D Momentum</span>
+                <span class="label">{{ days }}D Momentum</span>
                 <span class="value mono">{{ "%.2f"|format(price_change) }}%</span>
             </div>
         </div>
@@ -30,6 +30,14 @@
             <div class="form-group">
                 <label for="ticker">Scan New Target</label>
                 <input type="text" id="ticker" name="ticker" placeholder="e.g., NVDA" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="days">Analysis Period</label>
+                <select id="days" name="days">
+                    <option value="7" {% if days == 7 %}selected{% endif %}>7 Days</option>
+                    <option value="30" {% if days == 30 %}selected{% endif %}>30 Days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>90 Days</option>
+                </select>
             </div>
             <button type="submit" class="btn-primary">Initialize Scan</button>
         </form>
